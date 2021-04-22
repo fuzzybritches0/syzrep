@@ -1,0 +1,56 @@
+############ SETUP ############
+
+$ git clone https://github.com/fuzzybritches0/syzrep.git
+
+$ cd syzrep
+
+$ mkdir linux
+
+$ cd linux
+
+$ git clone git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
+
+$ cd ..
+
+$ mkdir bugs
+
+$ wget -O ./files/stretch.img https://storage.googleapis.com/syzkaller/stretch.img
+
+$ wget -O ./files/stretch.img.key https://storage.googleapis.com/syzkaller/stretch.img.key
+
+$ sudo apt install colorized-logs
+
+###############################
+
+
+############ USAGE ############
+
+$ cp -R ./files/template './bugs/TITLE-OF-SYZKALLER_BUG'
+
+$ cd './bugs/TITLE-OF-SYZKALLER_BUG'
+
+change file syzrep.rc accordingly:
+
+01 # Title of syzkaller bug
+02 #https://syzkaller.appspot.com/bug?id=
+03 #Reported-by: syzbot+xxxxxxxxxxxxxxxxxxxx@syzkaller.appspotmail.com
+04
+05 KCONFIG_HASH="yyyyyyyyyyyyyyyy"
+06 REPRODUCER_HASH="xxxxxxxxxxxxxx"
+
+For the two values in line 5 and 6, you can find the hashes in the Crashes
+roster in the links to each file.
+
+They look like this:
+https://syzkaller.appspot.com/text?tag=KernelConfig&x=yyyyyyyyyyyyyyyy
+https://syzkaller.appspot.com/text?tag=ReproSyz&x=xxxxxxxxxxxxxx
+
+
+So, all you have to do is fill out those two hashes and fill out line 1, 2 and
+3 accordingly.
+
+Additionally, it will be very likely, that you will have to adopt the file
+get_report.sh. Automatic retrieval of the crash report is not guaranteed,
+unless you adopt the file. Have a look at filter_report(). It's trivial.
+
+###############################

@@ -7,7 +7,7 @@ qemu-system-x86_64 -smp 2 -m 4G -enable-kvm -cpu host \
     -nographic \
     -device virtio-scsi-pci,id=scsi \
     -device scsi-hd,bus=scsi.0,drive=d0 \
-    -drive file="${root_dir}/files/image.img",format=raw,if=none,id=d0 \
+    -drive file="${root_dir}/files/stretch.img",format=raw,if=none,id=d0 \
     -snapshot -display none -no-reboot \
     -append "root=/dev/sda console=ttyS0 earlyprintk=serial \
       oops=panic panic_on_warn=1 panic=-1 kvm-intel.nested=1 \

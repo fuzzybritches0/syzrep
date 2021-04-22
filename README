@@ -51,7 +51,7 @@ change file syzrep.rc accordingly:
 06 REPRODUCER_HASH="xxxxxxxxxxxxxx"
 
 For the two values in line 5 and 6, you can find the hashes in the Crashes
-roster in the links column labled Config and Syz repro.
+roster in the columns labelled Config and Syz repro.
 
 They look like this:
 https://syzkaller.appspot.com/text?tag=KernelConfig&x=yyyyyyyyyyyyyyyy

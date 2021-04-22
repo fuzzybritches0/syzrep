@@ -1,5 +1,12 @@
 ############ SETUP ############
 
+$ sudo apt update
+
+$ sudo apt install  build-essential git cscope libncurses-dev libssl-dev \
+	bison flex git-email wget libelf-dev bc rsync kmod cpio pkgconf \
+	devscripts dwarves vim codespell gdb golang qemu-system-x86 \
+	colorized-logs
+
 $ git clone https://github.com/fuzzybritches0/syzrep.git
 
 $ cd syzrep
@@ -18,7 +25,12 @@ $ wget -O ./files/stretch.img https://storage.googleapis.com/syzkaller/stretch.i
 
 $ wget -O ./files/stretch.img.key https://storage.googleapis.com/syzkaller/stretch.img.key
 
-$ sudo apt install colorized-logs
+Follow the instructions to build the syzkaller helper binaries at:
+https://github.com/google/syzkaller/blob/master/docs/executing_syzkaller_programs.md
+
+Then place the binaries in the ./files folder. They are called syz-execprog and
+syz-executor. There will be NO need to manually upload them later. Just ignore
+that part in the instructions mentioned before.
 
 ###############################
 
@@ -52,5 +64,7 @@ So, all you have to do is fill out those two hashes and fill out line 1, 2 and
 Additionally, it will be very likely, that you will have to adopt the file
 get_report.sh. Automatic retrieval of the crash report is not guaranteed,
 unless you adopt the file. Have a look at filter_report(). It's trivial.
+
+Finally run ./auto.sh
 
 ###############################

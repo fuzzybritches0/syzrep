@@ -1,0 +1,6 @@
+# Report Title
+#https://syzkaller.appspot.com/bug?id=
+
+KCONFIG_HASH=""
+REPRODUCER_HASH=""
+

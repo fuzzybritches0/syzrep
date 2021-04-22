@@ -1,5 +1,6 @@
-# Report Title
+# Title of syzkaller bug
 #https://syzkaller.appspot.com/bug?id=
+#Reported-by: syzbot+xxxxxxxxxxxxxxxxxxxx@syzkaller.appspotmail.com
 
 KCONFIG_HASH=""
 REPRODUCER_HASH=""

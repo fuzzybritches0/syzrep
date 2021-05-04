@@ -4,6 +4,7 @@ filter_report() {
 	while read line; do
 		[ "${line/============================================}" != "${line}" ] && start_report=
 		[ "${line/'panic_on_warn set'}" != "${line}" ] && start_report=
+		[ "${line/BUG}" != "${line}" ] && start_report="1"
 		[ "${line/KASAN}" != "${line}" ] && start_report="1"
 		[ "${line/UBSAN}" != "${line}" ] && start_report="1"
 		[ "${line/WARNING}" != "${line}" ] && start_report="1"

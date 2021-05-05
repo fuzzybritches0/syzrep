@@ -16,5 +16,5 @@ qemu-system-x86_64 -smp 2 -m 4G -enable-kvm -cpu host \
       nf-conntrack-sip.ports=20000 nf-conntrack-irc.ports=20000 \
       nf-conntrack-sane.ports=20000 vivid.n_devs=16 \
       vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2 \
-      spec_store_bypass_disable=prctl nopcid"
+      spec_store_bypass_disable=prctl nopcid" > /dev/null
 

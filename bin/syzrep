@@ -1,0 +1,146 @@
+#!/bin/bash
+
+root_dir="${HOME}/syzrep"
+conf="syzrep.rc"
+
+if [ "${1}" == "decode" ]; then
+	[ ! -e "./linux/scripts/decode_stacktrace.sh" ] && echo "./linux/scripts/decode_stacktrace.sh not found!" && exit 1
+	
+	cat ./report${2}.txt | ./linux/scripts/decode_stacktrace.sh \
+		./linux/vmlinux . > ./report_decoded${2}.txt
+	exit 0
+fi
+
+[ ! -f "./${conf}" ] && echo "./${conf} not found!" && exit 1
+. "./${conf}"
+
+[ ! "${HOST_PORT_SSH}" ] && echo "HOST_PORT_SSH not set!" && exit 1
+
+if [ "${1}" == "ssh" ]; then
+	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key root@localhost "${@:2}"
+	exit 0
+fi
+
+if [ "${1}" == "auto" ]; then
+	if [ ! -d "${root_dir}/linux/${KCONFIG_HASH}" ]; then
+		echo -n "copying linux_mainline..."
+		cp -LR "${root_dir}/linux/linux" "${root_dir}/linux/${KCONFIG_HASH}"
+		echo "done."
+	fi
+	
+	[ -d "./linux" ] && rm ./linux
+	[ ! -d "./linux" ] && ln -s "${root_dir}/linux/${KCONFIG_HASH}" ./linux
+	[ ! -f "./linux/.config" ] && wget -O "./linux/.config" \
+		"https://syzkaller.appspot.com/text?tag=KernelConfig&x=${KCONFIG_HASH}"
+	[ ! -f "./reproducer.syz" ] && wget -O reproducer.syz \
+		"https://syzkaller.appspot.com/text?tag=ReproSyz&x=${REPRODUCER_HASH}"
+	if [ ! -f "./linux/arch/x86/boot/bzImage" ]; then
+		cd ./linux
+		make clean
+		make -j4
+		cd ..
+	fi
+	if [ -f "./linux/arch/x86_64/boot/bzImage" ] && [ ! -f "./report.txt" ]; then
+		syzrep report
+	fi
+	exit 0
+fi
+
+[ ! "${REPRODUCER_HASH}" ] && echo "REPRODUCER_HASH not set!" && exit 1
+[ ! "${KCONFIG_HASH}" ] && echo "KCONFIG_HASH not set!" && exit 1
+[ ! "${PATTERNS_START_REPORT[0]}" ] && echo "PATTERNS_START_REPORT/PATTERNS_FLIP_REPORT not set!" && exit 1
+
+filter_report() {
+	while read line; do
+		if [ ! "${off}" ]; then
+			if [ ! "${start_report}" ]; then
+				for pattern in "${PATTERNS_START_REPORT[@]}"; do
+					[ "${line/${pattern}}" != "${line}" ] && start_report=1 &&\
+					       echo ${line} && break
+				done
+			else
+				[ "${line/'panic_on_warn set'}" != "${line}" ] && off=1
+				found=
+				for pattern in "${PATTERNS_OMIT_LINE[@]}"; do
+					[ "${line/${pattern}}" != "${line}" ] && found=1 && break
+				done
+				[ ! "${found}" ] && echo ${line}
+			fi
+		fi
+	done
+}
+
+cut_timestamps() {
+	while read line; do
+		echo "${line:23}"
+	done
+}
+
+# https://github.com/google/syzkaller/blob/master/docs/syzbot.md
+run() {
+	qemu-system-x86_64 -smp 2 -m 4G -enable-kvm -cpu host \
+	    -net nic -net user,hostfwd=tcp::${HOST_PORT_SSH}-:22 \
+	    -kernel ./linux/arch/x86/boot/bzImage \
+	    -nographic \
+	    -device virtio-scsi-pci,id=scsi \
+	    -device scsi-hd,bus=scsi.0,drive=d0 \
+	    -drive file="${root_dir}/files/stretch.img",format=raw,if=none,id=d0 \
+	    -snapshot -display none -no-reboot \
+	    -append "root=/dev/sda console=ttyS0 earlyprintk=serial \
+	      oops=panic panic_on_warn=1 panic=-1 kvm-intel.nested=1 \
+	      security=apparmor ima_policy=tcb workqueue.watchdog_thresh=140 \
+	      nf-conntrack-ftp.ports=20000 nf-conntrack-tftp.ports=20000 \
+	      nf-conntrack-sip.ports=20000 nf-conntrack-irc.ports=20000 \
+	      nf-conntrack-sane.ports=20000 vivid.n_devs=16 \
+	      vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2 \
+	      spec_store_bypass_disable=prctl nopcid"	
+}
+
+upload() {
+	scp -P ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key ${root_dir}/files/syz-execprog \
+		${root_dir}/files/syz-executor ./reproducer.syz root@localhost:
+}
+
+reproduce() {
+	sleep 25s
+	upload
+	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key \
+		root@localhost ./syz-execprog -repeat=0 -procs=8 ./reproducer.syz > ./report_full2.txt
+	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key \
+		root@localhost systemctl poweroff
+}
+if [ "${1}" == "report" ]; then
+	reproduce &
+	
+	run | cut_timestamps | ansi2txt >> ./report_full1.txt
+	
+	cat ./report_full1.txt | filter_report > ./report1.txt
+	syzrep decode 1
+	cat ./report_decoded1.txt | ansi2txt > report1.txt
+	rm ./report_decoded1.txt
+	rm ./report_full1.txt
+	
+	cat ./report_full2.txt | filter_report > ./report2.txt
+	syzrep decode 2
+	mv ./report_decoded2.txt report2.txt
+	rm ./report_full2.txt
+	
+	[ ! "$(cat ./report1.txt)" ] && rm ./report1.txt
+	[ ! "$(cat ./report2.txt)" ] && rm ./report2.txt
+
+	exit 0	
+fi
+
+echo "HELP"
+echo
+echo "${0} : auto | report "
+echo "${0} : ssh [COMMAND {ARG ...}] "
+echo
+echo "- auto:   build kernel if none present, try to reproduce crash and"
+echo "          process report. ( $ rm ./linux/arch/x86/boot/bzImage - to"
+echo "          force rebuild after you make changes."
+echo "- report: just try to reproduce crash and process report."
+echo "- ssh:    execute [COMMAND {ARG ...}] in qemu."
+echo "          example: ${0} ssh systemctl poweroff"
+echo
+

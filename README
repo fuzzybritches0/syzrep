@@ -11,6 +11,11 @@ $ git clone https://github.com/fuzzybritches0/syzrep.git
 
 $ cd syzrep
 
+Place the file bin/syzrep in the way of your $PATH:
+
+Example:
+$ cp bin/syzrep ${HOME}/bin
+
 $ mkdir linux
 
 $ cd linux
@@ -25,34 +30,41 @@ $ wget -O ./files/stretch.img https://storage.googleapis.com/syzkaller/stretch.i
 
 $ wget -O ./files/stretch.img.key https://storage.googleapis.com/syzkaller/stretch.img.key
 
-$ cd ./files/templates
-
-$ ln -s get_report.sh ssh.sh
-
 Follow the instructions to build the syzkaller helper binaries at:
 https://github.com/google/syzkaller/blob/master/docs/executing_syzkaller_programs.md
 
 Then place the binaries in the ./files folder. They are called syz-execprog and
-syz-executor. There will be NO need to manually upload them later. Just ignore
-that part in the instructions mentioned before.
-
+syz-executor.
 ###############################
+
 
 
 ############ USAGE ############
 
-$ cp -R ./files/template './bugs/TITLE-OF-SYZKALLER_BUG'
+$ mkdir ./bugs/TITLE_OF_SYZKALLER_BUG
 
-$ cd './bugs/TITLE-OF-SYZKALLER_BUG'
+$ cp -R ./files/syzrep.rc ./bugs/TITLE-OF-SYZKALLER_BUG
+
+$ cd ./bugs/TITLE-OF-SYZKALLER_BUG
 
 change file syzrep.rc accordingly:
 
+File: syzrep.rc:
+###############################
 01 # Title of syzkaller bug
-02 #https://syzkaller.appspot.com/bug?id=
-03 #Reported-by: syzbot+xxxxxxxxxxxxxxxxxxxx@syzkaller.appspotmail.com
+02 # https://syzkaller.appspot.com/bug?id=
+03 # Reported-by: syzbot+xxxxxxxxxxxxxxxxxxxx@syzkaller.appspotmail.com
 04
-05 KCONFIG_HASH="yyyyyyyyyyyyyyyy"
-06 REPRODUCER_HASH="xxxxxxxxxxxxxx"
+05 KCONFIG_HASH=""
+06 REPRODUCER_HASH=""
+07
+08 HOST_PORT_SSH=10022
+09
+10 # FILTER SETTINGS
+11 PATTERNS_START_REPORT=("BUG" "KASAN" "UBSAN" "WARNING" "cut here")
+12 PATTERNS_OMIT_LINE=("Creating new" "filter on device" "entered blocking state" "entered forwarding state" \
+13			"link becomes ready")
+###############################
 
 For the two values in line 5 and 6, you can find the hashes in the 'Crashes'
 roster in the columns labelled 'Config' and 'Syz repro'.
@@ -65,10 +77,11 @@ https://syzkaller.appspot.com/text?tag=ReproSyz&x=xxxxxxxxxxxxxx
 So, all you have to do is fill out those two hashes and fill out line 1, 2 and
 3, also.
 
-Additionally, it will be very likely, that you will have to adopt the file
-get_report.sh. Automatic retrieval of the crash report is not guaranteed,
-unless you adopt the file. Have a look at filter_report(). It's trivial.
+Additionally, it will be very likely, that you will have to adopt
+PATTERNS_START_REPORT and PATTERNS_OMIT_LINE.
 
-Finally run ./auto.sh
+Finally run:
+
+$ syzrep auto
 
 ###############################

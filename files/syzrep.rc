@@ -11,4 +11,4 @@ HOST_PORT_SSH=10022
 PATTERNS_START_REPORT=("BUG" "KASAN" "UBSAN" "WARNING" "cut here")
 PATTERNS_OMIT_LINE=("Creating new" "filter on device" "entered blocking state" "entered forwarding state" \
 			"link becomes ready")
-
+PATTERNS_OMIT_POST=("${root_dir}/linux/${KCONFIG_HASH}/")

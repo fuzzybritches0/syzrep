@@ -76,6 +76,15 @@ cut_timestamps() {
 	done
 }
 
+post_filter() {
+	while read line; do
+		for pattern in "${PATTERNS_OMIT_POST[@]}"; do
+			line="${line//${pattern}}"
+		done
+		echo "${line}"
+	done
+}
+
 # https://github.com/google/syzkaller/blob/master/docs/syzbot.md
 run() {
 	qemu-system-x86_64 -smp 2 -m 4G -enable-kvm -cpu host \
@@ -109,6 +118,7 @@ reproduce() {
 	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key \
 		root@localhost systemctl poweroff
 }
+
 if [ "${1}" == "report" ]; then
 	reproduce &
 	
@@ -116,13 +126,14 @@ if [ "${1}" == "report" ]; then
 	
 	cat ./report_full1.txt | filter_report > ./report1.txt
 	syzrep decode 1
-	cat ./report_decoded1.txt | ansi2txt > report1.txt
+	cat ./report_decoded1.txt | ansi2txt | post_filter > report1.txt
 	rm ./report_decoded1.txt
 	rm ./report_full1.txt
 	
 	cat ./report_full2.txt | filter_report > ./report2.txt
 	syzrep decode 2
-	mv ./report_decoded2.txt report2.txt
+	cat ./report_decoded2.txt | post_filter > report2.txt
+	rm ./report_decoded2.txt
 	rm ./report_full2.txt
 	
 	[ ! "$(cat ./report1.txt)" ] && rm ./report1.txt

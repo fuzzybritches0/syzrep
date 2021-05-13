@@ -4,15 +4,15 @@ root_dir="${HOME}/syzrep"
 conf="syzrep.rc"
 
 if [ "${1}" == "decode" ]; then
-	[ ! -e "./linux/scripts/decode_stacktrace.sh" ] && echo "./linux/scripts/decode_stacktrace.sh not found!" && exit 1
-	
-	cat ./report${2}.txt | ./linux/scripts/decode_stacktrace.sh \
-		./linux/vmlinux . > ./report_decoded${2}.txt
+	[ ! -e "linux/scripts/decode_stacktrace.sh" ] &&\
+		echo "linux/scripts/decode_stacktrace.sh not found!" && exit 1	
+	cat report${2}.txt | linux/scripts/decode_stacktrace.sh \
+		linux/vmlinux linux > report_decoded${2}.txt
 	exit 0
 fi
 
-[ ! -f "./${conf}" ] && echo "./${conf} not found!" && exit 1
-. "./${conf}"
+[ ! -f "${conf}" ] && echo "${conf} not found!" && exit 1
+. "${conf}"
 
 [ ! "${HOST_PORT_SSH}" ] && echo "HOST_PORT_SSH not set!" && exit 1
 
@@ -28,19 +28,19 @@ if [ "${1}" == "auto" ]; then
 		echo "done."
 	fi
 	
-	[ -d "./linux" ] && rm ./linux
-	[ ! -d "./linux" ] && ln -s "${root_dir}/linux/${KCONFIG_HASH}" ./linux
-	[ ! -f "./linux/.config" ] && wget -O "./linux/.config" \
+	[ -d "linux" ] && rm ./linux
+	[ ! -d "linux" ] && ln -s "${root_dir}/linux/${KCONFIG_HASH}" ./linux
+	[ ! -f "linux/.config" ] && wget -O "linux/.config" \
 		"https://syzkaller.appspot.com/text?tag=KernelConfig&x=${KCONFIG_HASH}"
-	[ ! -f "./reproducer.syz" ] && wget -O reproducer.syz \
+	[ ! -f "reproducer.syz" ] && wget -O reproducer.syz \
 		"https://syzkaller.appspot.com/text?tag=ReproSyz&x=${REPRODUCER_HASH}"
-	if [ ! -f "./linux/arch/x86/boot/bzImage" ]; then
-		cd ./linux
+	if [ ! -f "linux/arch/x86/boot/bzImage" ]; then
+		cd linux
 		make clean
 		make -j4
 		cd ..
 	fi
-	if [ -f "./linux/arch/x86_64/boot/bzImage" ] && [ ! -f "./report.txt" ]; then
+	if [ -f "linux/arch/x86_64/boot/bzImage" ] && [ ! -f "report.txt" ]; then
 		syzrep report
 	fi
 	exit 0
@@ -89,7 +89,7 @@ post_filter() {
 run() {
 	qemu-system-x86_64 -smp 2 -m 4G -enable-kvm -cpu host \
 	    -net nic -net user,hostfwd=tcp::${HOST_PORT_SSH}-:22 \
-	    -kernel ./linux/arch/x86/boot/bzImage \
+	    -kernel linux/arch/x86/boot/bzImage \
 	    -nographic \
 	    -device virtio-scsi-pci,id=scsi \
 	    -device scsi-hd,bus=scsi.0,drive=d0 \
@@ -107,14 +107,14 @@ run() {
 
 upload() {
 	scp -P ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key ${root_dir}/files/syz-execprog \
-		${root_dir}/files/syz-executor ./reproducer.syz root@localhost:
+		${root_dir}/files/syz-executor reproducer.syz root@localhost:
 }
 
 reproduce() {
 	sleep 25s
 	upload
 	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key \
-		root@localhost ./syz-execprog -repeat=0 -procs=8 ./reproducer.syz > ./report_full2.txt
+		root@localhost ./syz-execprog -repeat=0 -procs=8 reproducer.syz > report_full2.txt
 	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key \
 		root@localhost systemctl poweroff
 }
@@ -122,22 +122,22 @@ reproduce() {
 if [ "${1}" == "report" ]; then
 	reproduce &
 	
-	run | cut_timestamps | ansi2txt >> ./report_full1.txt
+	run | cut_timestamps | ansi2txt >> report_full1.txt
 	
-	cat ./report_full1.txt | filter_report > ./report1.txt
-	syzrep decode 1
-	cat ./report_decoded1.txt | ansi2txt | post_filter > report1.txt
-	rm ./report_decoded1.txt
-	rm ./report_full1.txt
+	cat report_full1.txt | filter_report > report1.txt
+	devel /home/curtm/bin/syzrep decode 1
+	cat report_decoded1.txt | ansi2txt | post_filter > report1.txt
+	rm report_decoded1.txt
+	rm report_full1.txt
 	
-	cat ./report_full2.txt | filter_report > ./report2.txt
-	syzrep decode 2
-	cat ./report_decoded2.txt | post_filter > report2.txt
-	rm ./report_decoded2.txt
-	rm ./report_full2.txt
+	cat report_full2.txt | filter_report > report2.txt
+	devel /home/curtm/bin/syzrep decode 2
+	cat report_decoded2.txt | post_filter > report2.txt
+	rm report_decoded2.txt
+	rm report_full2.txt
 	
-	[ ! "$(cat ./report1.txt)" ] && rm ./report1.txt
-	[ ! "$(cat ./report2.txt)" ] && rm ./report2.txt
+	[ ! "$(cat report1.txt)" ] && rm report1.txt
+	[ ! "$(cat report2.txt)" ] && rm report2.txt
 
 	exit 0	
 fi

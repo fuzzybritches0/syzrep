@@ -1,5 +1,23 @@
 #!/bin/bash
 
+help_syzrep() {
+	echo
+	echo "HELP"
+	echo
+	echo "${0} : auto | report "
+	echo "${0} : ssh [COMMAND {ARG ...}] "
+	echo
+	echo "- auto:   build kernel if none present, try to reproduce crash and"
+	echo "          process report. ( $ rm ./linux/arch/x86/boot/bzImage - to"
+	echo "          force rebuild after you make changes. better just use 'make'."
+	echo "- report: just try to reproduce crash and process report."
+	echo "		when providing any second argument, the report is"
+	echo "		left untouched and encoded."
+	echo "- ssh:    execute [COMMAND {ARG ...}] in qemu."
+	echo "          example: ${0} ssh systemctl poweroff"
+	echo
+}
+
 root_dir="${HOME}/syzrep"
 conf="syzrep.rc"
 
@@ -11,10 +29,10 @@ if [ "${1}" == "decode" ]; then
 	exit 0
 fi
 
-[ ! -f "${conf}" ] && echo "${conf} not found!" && exit 1
+[ ! -f "${conf}" ] && echo "${conf} not found!" && help_syzrep && exit 1
 . "${conf}"
 
-[ ! "${HOST_PORT_SSH}" ] && echo "HOST_PORT_SSH not set!" && exit 1
+[ ! "${HOST_PORT_SSH}" ] && echo "HOST_PORT_SSH not set!" && help_syzrep && exit 1
 
 if [ "${1}" == "ssh" ]; then
 	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key root@localhost "${@:2}"
@@ -46,9 +64,10 @@ if [ "${1}" == "auto" ]; then
 	exit 0
 fi
 
-[ ! "${REPRODUCER_HASH}" ] && echo "REPRODUCER_HASH not set!" && exit 1
+[ ! "${REPRODUCER_HASH}" ] && echo "REPRODUCER_HASH not set!" && help_syzrep && exit 1
 [ ! "${KCONFIG_HASH}" ] && echo "KCONFIG_HASH not set!" && exit 1
-[ ! "${PATTERNS_START_REPORT[0]}" ] && echo "PATTERNS_START_REPORT/PATTERNS_FLIP_REPORT not set!" && exit 1
+[ ! "${PATTERNS_START_REPORT[0]}" ] && echo "PATTERNS_START_REPORT/PATTERNS_FLIP_REPORT not set!" &&\
+	help_syzrep && exit 1
 
 filter_report() {
 	while read line; do
@@ -123,35 +142,24 @@ if [ "${1}" == "report" ]; then
 	reproduce &
 	
 	run | cut_timestamps | ansi2txt >> report_full1.txt
+	if [ ! "${2}" ]; then
+		cat report_full1.txt | filter_report > report1.txt
+		syzrep decode 1
+		cat report_decoded1.txt | ansi2txt | post_filter > report1.txt
+		rm report_decoded1.txt
+		rm report_full1.txt
+		[ ! "$(cat report1.txt)" ] && rm report1.txt
+
+		cat report_full2.txt | filter_report > report2.txt
+		syzrep decode 2
+		cat report_decoded2.txt | post_filter > report2.txt
+		rm report_decoded2.txt
+		rm report_full2.txt
+		[ ! "$(cat report2.txt)" ] && rm report2.txt
+	fi
 	
-	cat report_full1.txt | filter_report > report1.txt
-	devel /home/curtm/bin/syzrep decode 1
-	cat report_decoded1.txt | ansi2txt | post_filter > report1.txt
-	rm report_decoded1.txt
-	rm report_full1.txt
-	
-	cat report_full2.txt | filter_report > report2.txt
-	devel /home/curtm/bin/syzrep decode 2
-	cat report_decoded2.txt | post_filter > report2.txt
-	rm report_decoded2.txt
-	rm report_full2.txt
-	
-	[ ! "$(cat report1.txt)" ] && rm report1.txt
-	[ ! "$(cat report2.txt)" ] && rm report2.txt
 
 	exit 0	
 fi
 
-echo "HELP"
-echo
-echo "${0} : auto | report "
-echo "${0} : ssh [COMMAND {ARG ...}] "
-echo
-echo "- auto:   build kernel if none present, try to reproduce crash and"
-echo "          process report. ( $ rm ./linux/arch/x86/boot/bzImage - to"
-echo "          force rebuild after you make changes."
-echo "- report: just try to reproduce crash and process report."
-echo "- ssh:    execute [COMMAND {ARG ...}] in qemu."
-echo "          example: ${0} ssh systemctl poweroff"
-echo
-
+help()

@@ -1,75 +1,31 @@
 #!/bin/bash
 
 help_syzrep() {
+	echo "		syzrep HELP"
 	echo
-	echo "HELP"
+	echo "${0} : all || rep || raw || ssh"
 	echo
-	echo "${0} : auto | report "
-	echo "${0} : ssh [COMMAND {ARG ...}] "
+	echo "- all:	build kernel if none present, try to reproduce crash and"
+	echo "		process report. ( $ rm ./linux/arch/x86/boot/bzImage - to"
+	echo "		force rebuild after you make changes. better just use 'make'."
+	echo "- rep:	try to reproduce crash, process report and decode."
+	echo "- raw:	try to reproduce crash and leave reports alone."
+	echo "		(useful for simple debugging)"
+	echo "- ssh:    execute [COMMAND {ARG ...}] in running qemu instance."
+	echo "          	example: ${0} ssh systemctl poweroff"
 	echo
-	echo "- auto:   build kernel if none present, try to reproduce crash and"
-	echo "          process report. ( $ rm ./linux/arch/x86/boot/bzImage - to"
-	echo "          force rebuild after you make changes. better just use 'make'."
-	echo "- report: just try to reproduce crash and process report."
-	echo "		when providing any second argument, the report is"
-	echo "		left untouched and encoded."
-	echo "- ssh:    execute [COMMAND {ARG ...}] in qemu."
-	echo "          example: ${0} ssh systemctl poweroff"
-	echo
+	[ "${1}" ] && echo "ERROR: ${1}"
+	[ "${2}" ] && exit ${2}
+	exit 1
 }
 
-root_dir="${HOME}/syzrep"
-conf="syzrep.rc"
+cut_timestamps() {
+	while read line; do
+		echo "${line:23}"
+	done
+}
 
-if [ "${1}" == "decode" ]; then
-	[ ! -e "linux/scripts/decode_stacktrace.sh" ] &&\
-		echo "linux/scripts/decode_stacktrace.sh not found!" && exit 1	
-	cat report${2}.txt | linux/scripts/decode_stacktrace.sh \
-		linux/vmlinux linux > report_decoded${2}.txt
-	exit 0
-fi
-
-[ ! -f "${conf}" ] && echo "${conf} not found!" && help_syzrep && exit 1
-. "${conf}"
-
-[ ! "${HOST_PORT_SSH}" ] && echo "HOST_PORT_SSH not set!" && help_syzrep && exit 1
-
-if [ "${1}" == "ssh" ]; then
-	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key root@localhost "${@:2}"
-	exit 0
-fi
-
-if [ "${1}" == "auto" ]; then
-	if [ ! -d "${root_dir}/linux/${KCONFIG_HASH}" ]; then
-		echo -n "copying linux_mainline..."
-		cp -LR "${root_dir}/linux/linux" "${root_dir}/linux/${KCONFIG_HASH}"
-		echo "done."
-	fi
-	
-	[ -d "linux" ] && rm ./linux
-	[ ! -d "linux" ] && ln -s "${root_dir}/linux/${KCONFIG_HASH}" ./linux
-	[ ! -f "linux/.config" ] && wget -O "linux/.config" \
-		"https://syzkaller.appspot.com/text?tag=KernelConfig&x=${KCONFIG_HASH}"
-	[ ! -f "reproducer.syz" ] && wget -O reproducer.syz \
-		"https://syzkaller.appspot.com/text?tag=ReproSyz&x=${REPRODUCER_HASH}"
-	if [ ! -f "linux/arch/x86/boot/bzImage" ]; then
-		cd linux
-		make clean
-		make -j4
-		cd ..
-	fi
-	if [ -f "linux/arch/x86_64/boot/bzImage" ] && [ ! -f "report.txt" ]; then
-		syzrep report
-	fi
-	exit 0
-fi
-
-[ ! "${REPRODUCER_HASH}" ] && echo "REPRODUCER_HASH not set!" && help_syzrep && exit 1
-[ ! "${KCONFIG_HASH}" ] && echo "KCONFIG_HASH not set!" && exit 1
-[ ! "${PATTERNS_START_REPORT[0]}" ] && echo "PATTERNS_START_REPORT/PATTERNS_FLIP_REPORT not set!" &&\
-	help_syzrep && exit 1
-
-filter_report() {
+filter_out_pre() {
 	while read line; do
 		if [ ! "${off}" ]; then
 			if [ ! "${start_report}" ]; then
@@ -89,13 +45,15 @@ filter_report() {
 	done
 }
 
-cut_timestamps() {
+remove_identical_pre() {
 	while read line; do
-		echo "${line:23}"
+		[ "${line:0:1}" == "?" ]  && line="${line:1}"
+		[ "${all/"${line}"}" == "${all}" ] && echo "${line}"
+		all="${all} ${line}"
 	done
 }
 
-post_filter() {
+remove_patterns_post() {
 	while read line; do
 		for pattern in "${PATTERNS_OMIT_POST[@]}"; do
 			line="${line//${pattern}}"
@@ -104,24 +62,43 @@ post_filter() {
 	done
 }
 
-# https://github.com/google/syzkaller/blob/master/docs/syzbot.md
+decode_single() {
+	if [ -f "report_full${1}.txt" ] && [ "$(cat report_full${1}.txt)" ]; then
+		cat report_full${1}.txt | filter_out_pre | remove_identical_pre > report${1}.txt
+		syzrep __decode ${1}
+		cat report_decoded${1}.txt | ansi2txt | remove_patterns_post > report${1}.txt
+		rm report_decoded${1}.txt
+		rm report_full${1}.txt
+		[ ! "$(cat report${1}.txt)" ] && rm report${1}.txt
+	elif [ -f "report_full${1}.txt" ]; then
+		rm report_full${1}.txt
+	fi
+}
+
+decode() {
+	decode_single 1
+	decode_single 2
+}
+
+### https://github.com/google/syzkaller/blob/master/docs/syzbot.md ###
 run() {
 	qemu-system-x86_64 -smp 2 -m 4G -enable-kvm -cpu host \
-	    -net nic -net user,hostfwd=tcp::${HOST_PORT_SSH}-:22 \
-	    -kernel linux/arch/x86/boot/bzImage \
-	    -nographic \
-	    -device virtio-scsi-pci,id=scsi \
-	    -device scsi-hd,bus=scsi.0,drive=d0 \
-	    -drive file="${root_dir}/files/stretch.img",format=raw,if=none,id=d0 \
-	    -snapshot -display none -no-reboot \
-	    -append "root=/dev/sda console=ttyS0 earlyprintk=serial \
-	      oops=panic panic_on_warn=1 panic=-1 kvm-intel.nested=1 \
-	      security=apparmor ima_policy=tcb workqueue.watchdog_thresh=140 \
-	      nf-conntrack-ftp.ports=20000 nf-conntrack-tftp.ports=20000 \
-	      nf-conntrack-sip.ports=20000 nf-conntrack-irc.ports=20000 \
-	      nf-conntrack-sane.ports=20000 vivid.n_devs=16 \
-	      vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2 \
-	      spec_store_bypass_disable=prctl nopcid"	
+		${@} \
+		-net nic -net user,hostfwd=tcp::${HOST_PORT_SSH}-:22 \
+		-kernel linux/arch/x86/boot/bzImage \
+		-nographic \
+		-device virtio-scsi-pci,id=scsi \
+		-device scsi-hd,bus=scsi.0,drive=d0 \
+		-drive file="${root_dir}/files/stretch.img",format=raw,if=none,id=d0 \
+		-snapshot -display none -no-reboot \
+		-append "root=/dev/sda console=ttyS0 earlyprintk=serial \
+		  oops=panic panic_on_warn=1 panic=-1 kvm-intel.nested=1 \
+		  security=apparmor ima_policy=tcb workqueue.watchdog_thresh=140 \
+		  nf-conntrack-ftp.ports=20000 nf-conntrack-tftp.ports=20000 \
+		  nf-conntrack-sip.ports=20000 nf-conntrack-irc.ports=20000 \
+		  nf-conntrack-sane.ports=20000 vivid.n_devs=16 \
+		  vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2 \
+		  spec_store_bypass_disable=prctl nopcid"	
 }
 
 upload() {
@@ -137,29 +114,67 @@ reproduce() {
 	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key \
 		root@localhost systemctl poweroff
 }
+### ^^^ https://github.com/google/syzkaller/blob/master/docs/syzbot.md  ^^^ ###
 
-if [ "${1}" == "report" ]; then
+rep() {
+	[ ! -f "linux/arch/x86_64/boot/bzImage" ] && help_syzrep "bzImage not found!" 1
 	reproduce &
-	
-	run | cut_timestamps | ansi2txt >> report_full1.txt
-	if [ ! "${2}" ]; then
-		cat report_full1.txt | filter_report > report1.txt
-		syzrep decode 1
-		cat report_decoded1.txt | ansi2txt | post_filter > report1.txt
-		rm report_decoded1.txt
-		rm report_full1.txt
-		[ ! "$(cat report1.txt)" ] && rm report1.txt
+	run | cut_timestamps | ansi2txt > report_full1.txt
+}
 
-		cat report_full2.txt | filter_report > report2.txt
-		syzrep decode 2
-		cat report_decoded2.txt | post_filter > report2.txt
-		rm report_decoded2.txt
-		rm report_full2.txt
-		[ ! "$(cat report2.txt)" ] && rm report2.txt
+root_dir="${HOME}/syzrep"
+conf="syzrep.rc"
+
+[ ! -f "${conf}" ] && help_syzrep "${conf} not found!" 1
+. "${conf}"
+
+[ ! "${HOST_PORT_SSH}" ] && help_syzrep "HOST_PORT_SSH not set!" 1
+
+[ ! "${REPRODUCER_HASH}" ] && help_syzrep "REPRODUCER_HASH not set!" 1
+[ ! "${KCONFIG_HASH}" ] && help_syzrep "KCONFIG_HASH not set!" 1
+[ ! "${PATTERNS_START_REPORT[0]}" ] && help_syzrep "PATTERNS_START_REPORT/PATTERNS_FLIP_REPORT not set!" 1
+
+if [ "${1}" == "ssh" ]; then
+	[ ! "${2}" ] && help_syzrep "no command provided!" 1
+	[ ! "$(pidof qemu-system-x86_64)" ] && help_syzrep "no qemu-system-x86_64 instance running!" 1
+	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key root@localhost "${@:2}"
+	exit 0
+elif [ "${1}" == "__decode" ]; then
+	[ ! -e "linux/scripts/decode_stacktrace.sh" ] && \
+		echo "linux/scripts/decode_stacktrace.sh not found!" && exit 1	
+	cat report${2}.txt | linux/scripts/decode_stacktrace.sh \
+		linux/vmlinux linux > report_decoded${2}.txt
+	exit 0
+elif [ "${1}" == "all" ]; then
+	if [ ! -d "${root_dir}/linux/${KCONFIG_HASH}" ]; then
+		echo -n "copying linux_mainline..."
+		cp -LR "${root_dir}/linux/linux" "${root_dir}/linux/${KCONFIG_HASH}"
+		echo "done."
 	fi
-	
-
+	[ ! -L "linux" ] && ln -s "${root_dir}/linux/${KCONFIG_HASH}" linux
+	if [ ! -f "linux/.config" ]; then
+		wget -O "linux/.config" \
+		"https://syzkaller.appspot.com/text?tag=KernelConfig&x=${KCONFIG_HASH}" || \
+		help_syzrep "could not download .config!" 1
+	fi
+	if [ ! -f "reproducer.syz" ]; then
+		wget -O reproducer.syz \
+		"https://syzkaller.appspot.com/text?tag=ReproSyz&x=${REPRODUCER_HASH}" || \
+		help_syzrep "could not download syz reproducer!" 1
+	fi
+	cd linux
+	make -j3 || exit 1
+	cd ..
+	[ -f "linux/arch/x86_64/boot/bzImage" ] && syzrep rep
+	exit 0
+elif [ "${1}" == "rep" ]; then
+	rep
+	decode
+	exit 0	
+elif [ "${1}" == "raw" ]; then
+	rep
+	[ -f "report_full1.txt" ] && [ ! "$(cat report_full1.txt)" ] && rm report_full1.txt
+	[ -f "report_full2.txt" ] && [ ! "$(cat report_full2.txt)" ] && rm report_full2.txt
 	exit 0	
 fi
-
-help()
+help_syzrep

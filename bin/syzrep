@@ -163,6 +163,7 @@ elif [ "${1}" == "all" ]; then
 		help_syzrep "could not download syz reproducer!" 1
 	fi
 	cd linux
+	make olddefconfig || exit 1
 	make -j3 || exit 1
 	cd ..
 	[ -f "linux/arch/x86_64/boot/bzImage" ] && syzrep rep

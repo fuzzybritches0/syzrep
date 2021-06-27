@@ -82,6 +82,6 @@ PATTERNS_START_REPORT and PATTERNS_OMIT_LINE.
 
 Finally run:
 
-$ syzrep auto
+$ syzrep all
 
 ###############################

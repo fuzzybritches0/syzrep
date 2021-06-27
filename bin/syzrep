@@ -166,7 +166,8 @@ elif [ "${1}" == "all" ]; then
 	make olddefconfig || exit 1
 	make -j3 || exit 1
 	cd ..
-	[ -f "linux/arch/x86_64/boot/bzImage" ] && syzrep rep
+	rep
+	decode
 	exit 0
 elif [ "${1}" == "rep" ]; then
 	rep

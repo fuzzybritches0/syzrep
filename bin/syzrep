@@ -193,6 +193,9 @@ if [ "${1}" == "rc" ]; then
 	[ -f "${conf}" ] && help_syzrep "file ${conf} already exists!" 1
 	rc_file > ${conf}
 	exit 0
+elif [ "${1}" == "__decode" ]; then
+	__decode ${2}
+	exit 0
 fi
 
 [ ! -f "${conf}" ] && help_syzrep "${conf} not found!" 1
@@ -200,17 +203,16 @@ fi
 
 [ ! "${HOST_PORT_SSH}" ] && help_syzrep "HOST_PORT_SSH not set!" 1
 
+if [ "${1}" == "ssh" ]; then
+	__ssh "${@:2}"
+	exit 0
+fi
+
 [ ! "${REPRODUCER_HASH}" ] && help_syzrep "REPRODUCER_HASH not set!" 1
 [ ! "${KCONFIG_HASH}" ] && help_syzrep "KCONFIG_HASH not set!" 1
 [ ! "${PATTERNS_START_REPORT[0]}" ] && help_syzrep "PATTERNS_START_REPORT/PATTERNS_FLIP_REPORT not set!" 1
 
-if [ "${1}" == "__decode" ]; then
-	__decode ${2}
-	exit 0
-elif [ "${1}" == "ssh" ]; then
-	__ssh "${@:2}"
-	exit 0
-elif [ "${1}" == "ini" ]; then
+if [ "${1}" == "ini" ]; then
 	init_syzrep
 	exit 0
 elif [ "${1}" == "all" ]; then

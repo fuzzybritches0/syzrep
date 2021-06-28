@@ -1,4 +1,5 @@
 #!/bin/bash
+# SPDX-License-Identifier: GPL-2.0
 
 help_syzrep() {
 	echo "		syzrep HELP"
@@ -98,7 +99,7 @@ run() {
 		  nf-conntrack-sip.ports=20000 nf-conntrack-irc.ports=20000 \
 		  nf-conntrack-sane.ports=20000 vivid.n_devs=16 \
 		  vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2 \
-		  spec_store_bypass_disable=prctl nopcid"	
+		  spec_store_bypass_disable=prctl nopcid"
 }
 
 upload() {
@@ -155,9 +156,9 @@ make_linux() {
 }
 
 __decode() {
-	[ ! -f "report${1}.txt" ] && help_syzrep "report${1}.txt not found!" 1 
+	[ ! -f "report${1}.txt" ] && help_syzrep "report${1}.txt not found!" 1
 	[ ! -e "linux/scripts/decode_stacktrace.sh" ] && \
-		help_syzrep "linux/scripts/decode_stacktrace.sh not found!" 1	
+		help_syzrep "linux/scripts/decode_stacktrace.sh not found!" 1
 	cat report${1}.txt | linux/scripts/decode_stacktrace.sh \
 		linux/vmlinux linux > report_decoded${1}.txt
 }
@@ -197,10 +198,10 @@ elif [ "${1}" == "all" ]; then
 elif [ "${1}" == "rep" ]; then
 	rep
 	decode
-	exit 0	
+	exit 0
 elif [ "${1}" == "raw" ]; then
 	rep
 	clean_up
-	exit 0	
+	exit 0
 fi
 help_syzrep

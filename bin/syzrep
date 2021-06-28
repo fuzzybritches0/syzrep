@@ -40,7 +40,11 @@ rc_file() {
 
 cut_timestamps() {
 	while read line; do
-		echo "${line:23}"
+		if [ "${line:21:1}" == "]" ]; then
+			echo "${line:23}"
+		else
+			echo "${line}"
+		fi
 	done
 }
 

@@ -160,16 +160,16 @@ conf="syzrep.rc"
 [ ! "${KCONFIG_HASH}" ] && help_syzrep "KCONFIG_HASH not set!" 1
 [ ! "${PATTERNS_START_REPORT[0]}" ] && help_syzrep "PATTERNS_START_REPORT/PATTERNS_FLIP_REPORT not set!" 1
 
-if [ "${1}" == "ssh" ]; then
-	[ ! "${2}" ] && help_syzrep "no command provided!" 1
-	[ ! "$(pidof qemu-system-x86_64)" ] && help_syzrep "no qemu-system-x86_64 instance running!" 1
-	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key root@localhost "${@:2}"
-	exit 0
-elif [ "${1}" == "__decode" ]; then
+if [ "${1}" == "__decode" ]; then
 	[ ! -e "linux/scripts/decode_stacktrace.sh" ] && \
 		echo "linux/scripts/decode_stacktrace.sh not found!" && exit 1	
 	cat report${2}.txt | linux/scripts/decode_stacktrace.sh \
 		linux/vmlinux linux > report_decoded${2}.txt
+	exit 0
+elif [ "${1}" == "ssh" ]; then
+	[ ! "${2}" ] && help_syzrep "no command provided!" 1
+	[ ! "$(pidof qemu-system-x86_64)" ] && help_syzrep "no qemu-system-x86_64 instance running!" 1
+	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key root@localhost "${@:2}"
 	exit 0
 elif [ "${1}" == "ini" ]; then
 	init_syzrep

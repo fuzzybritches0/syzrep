@@ -108,7 +108,7 @@ run() {
 	qemu-system-x86_64 -smp 2 -m 4G -enable-kvm -cpu host \
 		${@} \
 		-net nic -net user,hostfwd=tcp::${HOST_PORT_SSH}-:22 \
-		-kernel linux/arch/x86/boot/bzImage \
+		-kernel ${PWD}/linux/arch/x86/boot/bzImage \
 		-nographic \
 		-device virtio-scsi-pci,id=scsi \
 		-device scsi-hd,bus=scsi.0,drive=d0 \
@@ -129,14 +129,28 @@ upload() {
 		${root_dir}/files/syz-executor reproducer.syz root@localhost:
 }
 
+end_qemu() {
+	pids="$(pidof qemu-system-x86_64)"
+	for pid in ${pids}; do
+		if [ -f "/proc/${pid}/cmdline" ]; then
+			cmdline="$(cat /proc/${pid}/cmdline | tr "\0" " ")"
+			if [ "${cmdline/-kernel ${PWD}\/linux\/arch\/x86\/boot\/bzImage}" != "${cmdline}" ]; then
+				kill ${pid}
+				break
+			fi
+		fi
+	done
+}
+
 reproduce() {
 	sleep 25s
 	upload
 	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key \
 		root@localhost ./syz-execprog -repeat=0 -procs=8 reproducer.syz > report_full2.txt
-	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key \
-		root@localhost systemctl poweroff
+	sleep 3s
+	end_qemu
 }
+
 ### ^^^ https://github.com/google/syzkaller/blob/master/docs/syzbot.md  ^^^ ###
 
 __ssh() {
@@ -147,8 +161,15 @@ __ssh() {
 
 rep() {
 	[ ! -f "linux/arch/x86_64/boot/bzImage" ] && help_syzrep "bzImage not found!" 1
+	count=0
 	reproduce &
 	run | cut_timestamps | ansi2txt > report_full1.txt
+}
+
+rep_raw() {
+	[ ! -f "linux/arch/x86_64/boot/bzImage" ] && help_syzrep "bzImage not found!" 1
+	reproduce &
+	run > report_full1.txt
 }
 
 init_syzrep() {
@@ -230,7 +251,7 @@ elif [ "${1}" == "rep" ]; then
 	decode
 	exit 0
 elif [ "${1}" == "raw" ]; then
-	rep
+	rep_raw
 	clean_up
 	exit 0
 fi

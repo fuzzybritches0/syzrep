@@ -148,6 +148,14 @@ make_linux() {
 	cd ..
 }
 
+__decode() {
+	[ ! -f "report${1}.txt" ] && help_syzrep "report${1}.txt not found!" 1 
+	[ ! -e "linux/scripts/decode_stacktrace.sh" ] && \
+		help_syzrep "linux/scripts/decode_stacktrace.sh not found!" 1	
+	cat report${1}.txt | linux/scripts/decode_stacktrace.sh \
+		linux/vmlinux linux > report_decoded${1}.txt
+}
+
 root_dir="${HOME}/syzrep"
 conf="syzrep.rc"
 
@@ -161,10 +169,7 @@ conf="syzrep.rc"
 [ ! "${PATTERNS_START_REPORT[0]}" ] && help_syzrep "PATTERNS_START_REPORT/PATTERNS_FLIP_REPORT not set!" 1
 
 if [ "${1}" == "__decode" ]; then
-	[ ! -e "linux/scripts/decode_stacktrace.sh" ] && \
-		echo "linux/scripts/decode_stacktrace.sh not found!" && exit 1	
-	cat report${2}.txt | linux/scripts/decode_stacktrace.sh \
-		linux/vmlinux linux > report_decoded${2}.txt
+	__decode ${2}
 	exit 0
 elif [ "${1}" == "ssh" ]; then
 	[ ! "${2}" ] && help_syzrep "no command provided!" 1

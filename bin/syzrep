@@ -156,6 +156,11 @@ __decode() {
 		linux/vmlinux linux > report_decoded${1}.txt
 }
 
+clean_up() {
+	[ -f "report_full1.txt" ] && [ ! "$(cat report_full1.txt)" ] && rm report_full1.txt
+	[ -f "report_full2.txt" ] && [ ! "$(cat report_full2.txt)" ] && rm report_full2.txt
+}
+
 root_dir="${HOME}/syzrep"
 conf="syzrep.rc"
 
@@ -191,8 +196,7 @@ elif [ "${1}" == "rep" ]; then
 	exit 0	
 elif [ "${1}" == "raw" ]; then
 	rep
-	[ -f "report_full1.txt" ] && [ ! "$(cat report_full1.txt)" ] && rm report_full1.txt
-	[ -f "report_full2.txt" ] && [ ! "$(cat report_full2.txt)" ] && rm report_full2.txt
+	clean_up
 	exit 0	
 fi
 help_syzrep

@@ -141,6 +141,13 @@ init_syzrep() {
 	fi
 }
 
+make_linux() {
+	cd linux
+	make olddefconfig || exit 1
+	make -j3 || exit 1
+	cd ..
+}
+
 root_dir="${HOME}/syzrep"
 conf="syzrep.rc"
 
@@ -169,10 +176,7 @@ elif [ "${1}" == "ini" ]; then
 	exit 0
 elif [ "${1}" == "all" ]; then
 	init_syzrep
-	cd linux
-	make olddefconfig || exit 1
-	make -j3 || exit 1
-	cd ..
+	make_linux
 	rep
 	decode
 	exit 0

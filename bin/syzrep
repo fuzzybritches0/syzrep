@@ -4,7 +4,7 @@
 help_syzrep() {
 	echo "		syzrep HELP"
 	echo
-	echo "${0} : ini || all || rep || raw || ssh"
+	echo "${0} : ini || all || rep || raw || ssh COMMAND [ARGS]"
 	echo
 	echo "- ini:	download needed files, prepare linux mainline sources."
 	echo "- all:	download needed files, prepare linux mainline sources and"
@@ -12,7 +12,7 @@ help_syzrep() {
 	echo "- rep:	try to reproduce crash, process report and decode."
 	echo "- raw:	try to reproduce crash and leave reports alone."
 	echo "	(useful for simple debugging)"
-	echo "- ssh:    execute [COMMAND {ARG ...}] in running qemu instance."
+	echo "- ssh:	execute COMMAND [ARGS] in running qemu instance."
 	echo "	example: ${0} ssh systemctl poweroff"
 	echo
 	[ "${1}" ] && echo "ERROR: ${1}"

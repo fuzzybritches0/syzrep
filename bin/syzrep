@@ -116,6 +116,12 @@ reproduce() {
 }
 ### ^^^ https://github.com/google/syzkaller/blob/master/docs/syzbot.md  ^^^ ###
 
+__ssh() {
+	[ ! "${1}" ] && help_syzrep "no command provided!" 1
+	[ ! "$(pidof qemu-system-x86_64)" ] && help_syzrep "no qemu-system-x86_64 instance running!" 1
+	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key root@localhost "${@}"
+}
+
 rep() {
 	[ ! -f "linux/arch/x86_64/boot/bzImage" ] && help_syzrep "bzImage not found!" 1
 	reproduce &
@@ -177,9 +183,7 @@ if [ "${1}" == "__decode" ]; then
 	__decode ${2}
 	exit 0
 elif [ "${1}" == "ssh" ]; then
-	[ ! "${2}" ] && help_syzrep "no command provided!" 1
-	[ ! "$(pidof qemu-system-x86_64)" ] && help_syzrep "no qemu-system-x86_64 instance running!" 1
-	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key root@localhost "${@:2}"
+	__ssh "${@:2}"
 	exit 0
 elif [ "${1}" == "ini" ]; then
 	init_syzrep

@@ -26,6 +26,8 @@ $ cd ..
 
 $ mkdir bugs
 
+$ mkdir files
+
 $ wget -O ./files/stretch.img https://storage.googleapis.com/syzkaller/stretch.img
 
 $ wget -O ./files/stretch.img.key https://storage.googleapis.com/syzkaller/stretch.img.key
@@ -37,17 +39,16 @@ Then place the binaries in the ./files folder. They are called syz-execprog and
 syz-executor.
 ###############################
 
-
-
 ############ USAGE ############
 
 $ mkdir ./bugs/TITLE_OF_SYZKALLER_BUG
 
-$ cp -R ./files/syzrep.rc ./bugs/TITLE-OF-SYZKALLER_BUG
-
 $ cd ./bugs/TITLE-OF-SYZKALLER_BUG
 
-change file syzrep.rc accordingly:
+# next we create a template file
+$ syzrep rc
+
+change created file syzrep.rc accordingly:
 
 File: syzrep.rc:
 ###############################
@@ -62,8 +63,8 @@ File: syzrep.rc:
 09
 10 # FILTER SETTINGS
 11 PATTERNS_START_REPORT=("BUG" "KASAN" "UBSAN" "WARNING" "cut here")
-12 PATTERNS_OMIT_LINE=("Creating new" "filter on device" "entered blocking state" "entered forwarding state" \
-13			"link becomes ready")
+12 PATTERNS_OMIT_LINE=("Creating new" "filter on device" "entered blocking state" \
+13	"entered forwarding state" "link becomes ready")
 ###############################
 
 For the two values in line 5 and 6, you can find the hashes in the 'Crashes'
@@ -72,7 +73,6 @@ roster in the columns labelled 'Config' and 'Syz repro'.
 They look like this when you copy the link address by right-clicking:
 https://syzkaller.appspot.com/text?tag=KernelConfig&x=yyyyyyyyyyyyyyyy
 https://syzkaller.appspot.com/text?tag=ReproSyz&x=xxxxxxxxxxxxxx
-
 
 So, all you have to do is fill out those two hashes and fill out line 1, 2 and
 3, also.

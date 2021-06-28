@@ -4,8 +4,9 @@
 help_syzrep() {
 	echo "		syzrep HELP"
 	echo
-	echo "${0} : ini || all || rep || raw || ssh COMMAND [ARGS]"
+	echo "${0} : rc || ini || all || rep || raw || ssh COMMAND [ARGS]"
 	echo
+	echo "- rc :	create syzrep.rc template file."
 	echo "- ini:	download needed files, prepare linux mainline sources."
 	echo "- all:	download needed files, prepare linux mainline sources and"
 	echo "	build kernel. try to reproduce crash and process report."
@@ -18,6 +19,23 @@ help_syzrep() {
 	[ "${1}" ] && echo "ERROR: ${1}"
 	[ "${2}" ] && exit ${2}
 	exit 1
+}
+
+rc_file() {
+	echo "# Title of syzkaller bug"
+	echo "# https://syzkaller.appspot.com/bug?id="
+	echo "# Reported-by: syzbot+xxxxxxxxxxxxxxxxxxxx@syzkaller.appspotmail.com"
+	echo 
+	echo "KCONFIG_HASH="
+	echo "REPRODUCER_HASH="
+	echo 
+	echo "HOST_PORT_SSH=10022"
+	echo 
+	echo "# FILTER SETTINGS"
+	echo "PATTERNS_START_REPORT=(\"BUG\" \"KASAN\" \"UBSAN\" \"WARNING\" \"cut here\")"
+	echo "PATTERNS_OMIT_LINE=(\"Creating new\" \"filter on device\" \"entered blocking state\" \\"
+	echo "	\"entered forwarding state\" \"link becomes ready\")"
+	echo "PATTERNS_OMIT_POST=(\"\${root_dir}/linux/\${KCONFIG_HASH}/\")"
 }
 
 cut_timestamps() {
@@ -170,6 +188,12 @@ clean_up() {
 
 root_dir="${HOME}/syzrep"
 conf="syzrep.rc"
+
+if [ "${1}" == "rc" ]; then
+	[ -f "${conf}" ] && help_syzrep "file ${conf} already exists!" 1
+	rc_file > ${conf}
+	exit 0
+fi
 
 [ ! -f "${conf}" ] && help_syzrep "${conf} not found!" 1
 . "${conf}"

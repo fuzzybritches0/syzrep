@@ -3,11 +3,11 @@
 help_syzrep() {
 	echo "		syzrep HELP"
 	echo
-	echo "${0} : all || rep || raw || ssh"
+	echo "${0} : ini || all || rep || raw || ssh"
 	echo
-	echo "- all:	build kernel if none present, try to reproduce crash and"
-	echo "		process report. ( $ rm ./linux/arch/x86/boot/bzImage - to"
-	echo "		force rebuild after you make changes. better just use 'make'."
+	echo "- ini:	download needed files, prepare linux mainline sources."
+	echo "- all:	download needed files, prepare linux mainline sources and"
+	echo "		build kernel. try to reproduce crash and process report."
 	echo "- rep:	try to reproduce crash, process report and decode."
 	echo "- raw:	try to reproduce crash and leave reports alone."
 	echo "		(useful for simple debugging)"
@@ -122,6 +122,25 @@ rep() {
 	run | cut_timestamps | ansi2txt > report_full1.txt
 }
 
+init_syzrep() {
+	if [ ! -d "${root_dir}/linux/${KCONFIG_HASH}" ]; then
+		echo -n "copying linux_mainline..."
+		cp -LR "${root_dir}/linux/linux" "${root_dir}/linux/${KCONFIG_HASH}"
+		echo "done."
+	fi
+	[ ! -L "linux" ] && ln -s "${root_dir}/linux/${KCONFIG_HASH}" linux
+	if [ ! -f "linux/.config" ]; then
+		wget -O "linux/.config" \
+		"https://syzkaller.appspot.com/text?tag=KernelConfig&x=${KCONFIG_HASH}" || \
+		help_syzrep "could not download .config!" 1
+	fi
+	if [ ! -f "reproducer.syz" ]; then
+		wget -O reproducer.syz \
+		"https://syzkaller.appspot.com/text?tag=ReproSyz&x=${REPRODUCER_HASH}" || \
+		help_syzrep "could not download syz reproducer!" 1
+	fi
+}
+
 root_dir="${HOME}/syzrep"
 conf="syzrep.rc"
 
@@ -145,23 +164,11 @@ elif [ "${1}" == "__decode" ]; then
 	cat report${2}.txt | linux/scripts/decode_stacktrace.sh \
 		linux/vmlinux linux > report_decoded${2}.txt
 	exit 0
+elif [ "${1}" == "ini" ]; then
+	init_syzrep
+	exit 0
 elif [ "${1}" == "all" ]; then
-	if [ ! -d "${root_dir}/linux/${KCONFIG_HASH}" ]; then
-		echo -n "copying linux_mainline..."
-		cp -LR "${root_dir}/linux/linux" "${root_dir}/linux/${KCONFIG_HASH}"
-		echo "done."
-	fi
-	[ ! -L "linux" ] && ln -s "${root_dir}/linux/${KCONFIG_HASH}" linux
-	if [ ! -f "linux/.config" ]; then
-		wget -O "linux/.config" \
-		"https://syzkaller.appspot.com/text?tag=KernelConfig&x=${KCONFIG_HASH}" || \
-		help_syzrep "could not download .config!" 1
-	fi
-	if [ ! -f "reproducer.syz" ]; then
-		wget -O reproducer.syz \
-		"https://syzkaller.appspot.com/text?tag=ReproSyz&x=${REPRODUCER_HASH}" || \
-		help_syzrep "could not download syz reproducer!" 1
-	fi
+	init_syzrep
 	cd linux
 	make olddefconfig || exit 1
 	make -j3 || exit 1

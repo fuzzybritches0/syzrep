@@ -146,10 +146,11 @@ reproduce() {
 	sleep 25s
 	upload
 	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key \
+		root@localhost 'echo __REPORT_BEGINS_HERE > /dev/kmsg'
+	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key \
 		root@localhost ./syz-execprog -repeat=0 -procs=8 reproducer.syz > report_full2.txt
 	end_qemu
 }
-
 ### ^^^ https://github.com/google/syzkaller/blob/master/docs/syzbot.md  ^^^ ###
 
 __ssh() {
@@ -158,11 +159,18 @@ __ssh() {
 	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key root@localhost "${@}"
 }
 
+discard() {
+	while read line; do
+		[ "${line/__REPORT_BEGINS_HERE}" != "${line}" ] && on=1
+		[ "${on}" ] && echo "${line}"
+	done
+}
+
 rep() {
 	[ ! -f "linux/arch/x86_64/boot/bzImage" ] && help_syzrep "bzImage not found!" 1
 	count=0
 	reproduce &
-	run | cut_timestamps | ansi2txt > report_full1.txt
+	run | discard | cut_timestamps | ansi2txt > report_full1.txt
 }
 
 rep_raw() {

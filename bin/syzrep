@@ -186,10 +186,13 @@ init_syzrep() {
 		echo "done."
 	fi
 	[ ! -L "linux" ] && ln -s "${root_dir}/linux/${KCONFIG_HASH}" linux
-	if [ ! -f "linux/.config" ]; then
-		wget -O "linux/.config" \
+	if [ -f "kconfig" ] && [ ! -f "linux/.config" ]; then
+		cp kconfig linux/.config
+	elif [ ! -f "linux/.config" ]; then
+		wget -O "kconfig" \
 		"https://syzkaller.appspot.com/text?tag=KernelConfig&x=${KCONFIG_HASH}" || \
 		help_syzrep "could not download .config!" 1
+		cp kconfig linux/.config
 	fi
 	if [ ! -f "reproducer.syz" ]; then
 		wget -O reproducer.syz \

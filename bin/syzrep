@@ -203,9 +203,29 @@ init_syzrep() {
 
 make_linux() {
 	cd linux
-	make olddefconfig || exit 1
-	make -j3 || exit 1
-	cd ..
+	if [ -f ".make_linux_running" ]; then
+		echo "--- WARNING! ---"
+		echo "Compiling already in progress!"
+		echo "If this is not the case please remove file:"
+		echo "  ./linux/.make_linux_running"
+		echo
+		echo "Usually this happens when trying to compile the same kernel"
+		echo "for a different bug from syzbot!"
+		echo "exiting..."
+		exit 0
+	else
+		touch .make_linux_running
+		if ! make olddefconfig; then
+			rm -f .make_linux_running
+			exit 1
+		fi
+		if ! make -j3; then
+			rm -f .make_linux_running
+			exit 1
+		fi
+		rm -f .make_linux_running
+		cd ..
+	fi
 }
 
 __decode() {

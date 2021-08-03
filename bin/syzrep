@@ -241,6 +241,11 @@ clean_up() {
 	[ -f "report_full2.txt" ] && [ ! "$(cat report_full2.txt)" ] && rm report_full2.txt
 }
 
+timestamp_rep() {
+	[ -f "report1.txt" ] && mv report1.txt report-$(date +%Y-%m-%d-%H-%M-%S).txt
+	[ -f "report2.txt" ] && mv report2.txt report-$(date +%Y-%m-%d-%H-%M-%S).txt
+}
+
 root_dir="${HOME}/syzrep"
 conf="syzrep.rc"
 
@@ -275,10 +280,12 @@ elif [ "${1}" == "all" ]; then
 	make_linux
 	rep
 	decode
+	timestamp_rep
 	exit 0
 elif [ "${1}" == "rep" ]; then
 	rep
 	decode
+	timestamp_rep
 	exit 0
 elif [ "${1}" == "raw" ]; then
 	rep_raw

@@ -69,10 +69,21 @@ filter_out_pre() {
 }
 
 remove_identical_pre() {
+	all=()
 	while read line; do
-		[ "${line:0:1}" == "?" ]  && line="${line:1}"
-		[ "${all/"${line}"}" == "${all}" ] && echo "${line}"
-		all="${all} ${line}"
+		linep="${line}"
+		[ "${line:0:1}" == "?" ]  && linep="${line:2}"
+		found=
+		for eachline in "${all[@]}"; do
+			if [ "${eachline}" == "${linep}" ]; then
+				found=1
+				break
+			fi
+		done
+		if [ ! "${found}" ]; then
+			echo "${line}"
+			[ "${line}" ] && all+=("${linep}")
+		fi
 	done
 }
 

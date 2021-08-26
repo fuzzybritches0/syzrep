@@ -1,0 +1,119 @@
+architecture: amd64
+
+actions:
+  - action: debootstrap
+    suite: stretch
+    components:
+      - main
+      #- non-free
+    mirror: http://192.168.10.1:3142/debian
+    variant: minbase
+
+  - action: apt
+    description: Installing extra packages
+    packages:
+      - systemd
+      - systemd-sysv
+      - udev
+      - ifupdown
+      - isc-dhcp-client
+      - openssh-server
+      # - apt-utils
+      # - bsdmainutils
+      # - checkpolicy
+      # - cpio
+      # - cpp
+      # - cron
+      # - curl
+      # - debconf-i18n
+      # - dmidecode
+      # - findutils
+      # - firmware-atheros
+      # - gcc
+      # - gnupg
+      # - gnupg-agent
+      # - ifupdown
+      # - init
+      # - iproute2
+      # - iptables
+      # - iputils-ping
+      # - kmod
+      # - less
+      # - logrotate
+      # - netbase
+      # - policycoreutils
+      # - psmisc
+      # - readline-common
+      # - rsyslog
+      # - selinux-policy-default
+      # - selinux-utils
+      # - strace
+      # - time
+      # - wget
+      # - whiptail
+      # - xxd
+
+  - action: run
+    description: Disable systemd-timesyncd
+    chroot: true
+    command: systemctl disable systemd-timesyncd
+
+  - action: run
+    chroot: true
+    script: scripts/setup-networking.sh
+
+  - action: run
+    description: Add hostname
+    chroot: true
+    command: echo syzrep > /etc/hostname
+
+  - action: run
+    description: Add directory /reproducer
+    chroot: true
+    command: mkdir /reproducer
+
+  - action: run
+    description: Add / to /etc/fstab
+    chroot: true
+    command: echo "/dev/sda1 / ext4 defaults 0 1 defaults" >> /etc/fstab
+
+  - action: run
+    description: Add /reproducer to /etc/fstab
+    chroot: true
+    command: echo "/dev/sdb /reproducer ext4 defaults" >> /etc/fstab
+
+  - action: run
+    description: Set root autologin 
+    chroot: true
+    command: ln -s /etc/systemd/system/autologin@.service /etc/systemd/system/getty.target.wants/getty@ttyS0.service
+
+  - action: run
+    description: Set root password empty
+    chroot: true
+    command: passwd -d root
+
+  - action: overlay
+    source: overlays/ssh
+
+  - action: overlay
+    source: overlays/root
+
+  - action: overlay
+    source: overlays/syzkaller
+
+  - action: image-partition
+    imagename: image.img
+    imagesize: 2GB
+    partitiontype: gpt
+    partitions:
+      - name: root
+        fs: ext4
+        start: 0%
+        end: 100%
+    mountpoints:
+      - mountpoint: /
+        partition: root
+
+  - action: filesystem-deploy
+    description: Deploying filesystem onto image
+    setup-fstab: false

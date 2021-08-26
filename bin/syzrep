@@ -186,8 +186,7 @@ rep() {
 
 rep_raw() {
 	[ ! -f "linux/arch/x86_64/boot/bzImage" ] && help_syzrep "bzImage not found!" 1
-	reproduce &
-	run > report_full1.txt
+	run "-net nic -net user,hostfwd=tcp::${HOST_PORT_SSH}-:22" "panic=-1 syzrep_auto=1"
 }
 
 init_syzrep() {

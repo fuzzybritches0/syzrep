@@ -323,6 +323,16 @@ timestamp_rep() {
 	[ -f "report2.txt" ] && mv report2.txt reports/report-$(date +%Y-%m-%d-%H-%M-%S).txt
 }
 
+debug() {
+	while read line; do
+		if [ "${line/"parsed 1 programs"}" != "${line}" ]; then
+			syzrep qem s
+			echo "### syzrep: Info: state saved! load with 'syzrep qem l'"
+		fi
+		echo "${line}"
+	done
+}
+
 root_dir="${HOME}/syzrep"
 conf="syzrep.rc"
 

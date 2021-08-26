@@ -4,9 +4,9 @@
 help_syzrep() {
 	echo "		syzrep HELP"
 	echo
-	echo "${0} : rc || ini || all || rep || raw || ssh COMMAND [ARGS]"
+	echo "${0} : crc || ini || all || rep || raw || ssh COMMAND [ARGS]"
 	echo
-	echo "- rc :	create syzrep.rc template file."
+	echo "- crc :	create syzrep.rc template file."
 	echo "- ini:	download needed files, prepare linux mainline sources."
 	echo "- all:	download needed files, prepare linux mainline sources and"
 	echo "	build kernel. try to reproduce crash and process report."
@@ -336,7 +336,7 @@ debug() {
 root_dir="${HOME}/syzrep"
 conf="syzrep.rc"
 
-if [ "${1}" == "rc" ]; then
+if [ "${1}" == "crc" ]; then
 	[ -f "${conf}" ] && help_syzrep "file ${conf} already exists!" 1
 	rc_file > ${conf}
 	exit 0

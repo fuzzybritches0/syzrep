@@ -208,6 +208,43 @@ init_reproducer() {
 
 }
 
+init_image() {
+	pwd="${PWD}"
+	[ ! -d "${root_dir}/files/debos/overlays/ssh/etc/ssh" ] && \
+		mkdir -p "${root_dir}/files/debos/overlays/ssh/etc/ssh"
+	cd "${root_dir}/files/debos/overlays/ssh/etc/ssh"
+	[ ! -f "ssh_host_rsa_key" ] && ssh-keygen -q -f ssh_host_rsa_key -N '' -t rsa
+	[ ! -f "ssh_host_dsa_key" ] && ssh-keygen -q -f ssh_host_dsa_key -N '' -t dsa
+	[ ! -f "ssh_host_ecdsa_key" ] && ssh-keygen -q -f ssh_host_ecdsa_key -N '' -t ecdsa
+	[ ! -f "ssh_host_ed25519_key" ] && ssh-keygen -q -f ssh_host_ed25519_key -N '' -t ed25519
+
+	[ ! -d "${root_dir}/files/debos/overlays/root/root/.ssh" ] && \
+		mkdir -p "${root_dir}/files/debos/overlays/root/root/.ssh"
+	cd "${root_dir}/files/debos/overlays/root/root/.ssh"
+	[ ! -f "id_rsa" ] && ssh-keygen -q -f id_rsa -N ''
+	[ ! -f "authorized_keys" ] && cp id_rsa.pub authorized_keys
+	if [ ! -d "${root_dir}/files/syzkaller" ]; then
+		cd "${root_dir}/files"
+		git clone https://github.com/google/syzkaller
+	fi
+	if [ ! -d "${root_dir}/files/syzkaller/bin" ]; then
+		cd "${root_dir}/files/syzkaller"
+		git remote update
+		git pull
+		make
+	fi
+	cd "${root_dir}/files/debos"
+	rm -f image.qcow2
+	if [ ! -d "${root_dir}/files/debos/overlays/syzkaller/bin" ]; then
+		mkdir -p overlays/syzkaller
+		cp -r "${root_dir}/files/syzkaller/bin" "${root_dir}/files/debos/overlays/syzkaller"
+	fi
+	debos debimage-qemu-amd64.yaml
+	qemu-img convert -O qcow2 image.img image.qcow2
+	rm -f image.img
+	cd "${pwd}"
+}
+
 init_syzrep() {
 	if [ ! -d "${root_dir}/linux/${KCONFIG_HASH}" ]; then
 		echo -n "copying linux_mainline..."

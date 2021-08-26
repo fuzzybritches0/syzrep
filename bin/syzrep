@@ -318,8 +318,9 @@ clean_up() {
 }
 
 timestamp_rep() {
-	[ -f "report1.txt" ] && mv report1.txt report-$(date +%Y-%m-%d-%H-%M-%S).txt
-	[ -f "report2.txt" ] && mv report2.txt report-$(date +%Y-%m-%d-%H-%M-%S).txt
+	[ ! -d "reports" ] && mkdir reports
+	[ -f "report1.txt" ] && mv report1.txt reports/report-$(date +%Y-%m-%d-%H-%M-%S).txt
+	[ -f "report2.txt" ] && mv report2.txt reports/report-$(date +%Y-%m-%d-%H-%M-%S).txt
 }
 
 root_dir="${HOME}/syzrep"

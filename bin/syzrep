@@ -356,8 +356,10 @@ if [ "${1}" == "ssh" ]; then
 fi
 
 [ ! "${REPRODUCER_HASH}" ] && help_syzrep "REPRODUCER_HASH not set!" 1
-[ ! "${KCONFIG_HASH}" ] && help_syzrep "KCONFIG_HASH not set!" 1
-[ ! "${PATTERNS_START_REPORT[0]}" ] && help_syzrep "PATTERNS_START_REPORT/PATTERNS_FLIP_REPORT not set!" 1
+if [ ! "${KCONFIG_HASH}" ] && [ ! -f "kconfig" ]; then
+	help_syzrep "KCONFIG_HASH not set or kconfig kernel config not found!" 1
+fi
+[ ! "${PATTERNS_START_REPORT[0]}" ] && help_syzrep "PATTERNS_START_REPORT not set!" 1
 
 if [ "${1}" == "ini" ]; then
 	init_syzrep

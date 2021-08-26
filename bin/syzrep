@@ -372,11 +372,13 @@ elif [ "${1}" == "all" ]; then
 	timestamp_rep
 	exit 0
 elif [ "${1}" == "rep" ]; then
+	init_syzrep
 	rep
 	decode
 	timestamp_rep
 	exit 0
 elif [ "${1}" == "raw" ]; then
+	init_syzrep
 	rep_raw
 	clean_up
 	exit 0

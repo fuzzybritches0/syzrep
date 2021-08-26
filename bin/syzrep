@@ -180,7 +180,8 @@ rep() {
 	[ ! -f "linux/arch/x86_64/boot/bzImage" ] && help_syzrep "bzImage not found!" 1
 	count=0
 	reproduce &
-	run | discard | cut_timestamps | ansi2txt > report_full1.txt
+	run "" "panic=-1" | \
+		discard | cut_timestamps | ansi2txt > report_full1.txt
 }
 
 rep_raw() {

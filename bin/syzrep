@@ -399,5 +399,8 @@ elif [ "${1}" == "qem" ]; then
 	[ "${2}" == "q" ] && echo "quit" | nc -q 5 127.0.0.1 55555 > /dev/null && exit 0
 	nc 127.0.0.1 55555
 	exit ${?}
+elif [ "${1}" == "end" ]; then
+	end_qemu
+	exit 0
 fi
 help_syzrep

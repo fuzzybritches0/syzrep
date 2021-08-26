@@ -155,11 +155,10 @@ end_qemu() {
 
 reproduce() {
 	sleep 25s
-	upload
-	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key \
+	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/debos/overlays/root/root/.ssh/id_rsa \
 		root@localhost 'echo __REPORT_BEGINS_HERE > /dev/kmsg'
-	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key \
-		root@localhost ./syz-execprog -repeat=0 -procs=8 reproducer.syz > report_full2.txt
+	ssh -p ${HOST_PORT_SSH} -i ${root_dir}/files/debos/overlays/root/root/.ssh/id_rsa \
+		root@localhost /reproducer/run.sh run > report_full2.txt
 	end_qemu
 }
 ### ^^^ https://github.com/google/syzkaller/blob/master/docs/syzbot.md  ^^^ ###

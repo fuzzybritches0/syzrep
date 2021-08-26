@@ -5,7 +5,7 @@ $ sudo apt update
 $ sudo apt install  build-essential git cscope libncurses-dev libssl-dev \
 	bison flex git-email wget libelf-dev bc rsync kmod cpio pkgconf \
 	devscripts dwarves vim codespell gdb golang qemu-system-x86 \
-	colorized-logs
+	colorized-logs qemu-utils debos
 
 $ git clone https://github.com/fuzzybritches0/syzrep.git
 
@@ -16,27 +16,8 @@ Place the file bin/syzrep in the way of your $PATH:
 Example:
 $ cp bin/syzrep ${HOME}/bin
 
-$ mkdir linux
-
-$ cd linux
-
-$ git clone git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
-
-$ cd ..
-
 $ mkdir bugs
 
-$ mkdir files
-
-$ wget -O ./files/stretch.img https://storage.googleapis.com/syzkaller/stretch.img
-
-$ wget -O ./files/stretch.img.key https://storage.googleapis.com/syzkaller/stretch.img.key
-
-Follow the instructions to build the syzkaller helper binaries at:
-https://github.com/google/syzkaller/blob/master/docs/executing_syzkaller_programs.md
-
-Then place the binaries in the ./files folder. They are called syz-execprog and
-syz-executor.
 ###############################
 
 ############ USAGE ############
@@ -46,7 +27,7 @@ $ mkdir ./bugs/TITLE_OF_SYZKALLER_BUG
 $ cd ./bugs/TITLE-OF-SYZKALLER_BUG
 
 # next we create a template file
-$ syzrep rc
+$ syzrep crc
 
 change created file syzrep.rc accordingly:
 
@@ -74,14 +55,27 @@ They look like this when you copy the link address by right-clicking:
 https://syzkaller.appspot.com/text?tag=KernelConfig&x=yyyyyyyyyyyyyyyy
 https://syzkaller.appspot.com/text?tag=ReproSyz&x=xxxxxxxxxxxxxx
 
-So, all you have to do is fill out those two hashes and fill out line 1, 2 and
-3, also.
-
-Additionally, it will be very likely, that you will have to adopt
-PATTERNS_START_REPORT and PATTERNS_OMIT_LINE.
+So, all you have to do is fill out those two hashes, line 1, 2 and 3, also.
 
 Finally run:
 
 $ syzrep all
+
+If you want to use gdb:
+
+$ syzrep deb
+
+Open another terminal:
+
+$ syzrep gdb
+
+The reproducer will start automatically and the state of the machine is saved
+before the reproducer starts. If you want to repeat from the start do:
+
+$ syzrep qem l
+
+To find more help just type:
+
+$ syzrep
 
 ###############################

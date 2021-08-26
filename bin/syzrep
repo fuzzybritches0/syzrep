@@ -189,6 +189,25 @@ rep_raw() {
 	run "-net nic -net user,hostfwd=tcp::${HOST_PORT_SSH}-:22" "panic=-1 syzrep_auto=1"
 }
 
+init_reproducer() {
+	if [ ! -f "reproducer/run.sh" ]; then
+		echo "#!/bin/bash" > reproducer/run.sh
+		echo "[ ! \"\$(cat /proc/cmdline | grep \"syzrep_auto=1\")\" ] && [ ! \"\${1}\" ] && exit 0" \
+			>> reproducer/run.sh
+		echo "[ \"\$(cat /proc/cmdline | grep \"syzrep_norvas=1\")\" ] && echo 0 > /proc/sys/kernel/randomize_va_space" >> reproducer/run.sh
+		echo "echo \"Wait 5s...\"" >> reproducer/run.sh
+		echo "sleep 5s" >> reproducer/run.sh
+		echo "cd /bin/linux_amd64" >> reproducer/run.sh
+		echo "./syz-execprog -repeat=0 -procs=8 /reproducer/reproducer.syz" >> reproducer/run.sh
+		chmod ugo+x reproducer/run.sh
+	fi
+	dd count=200000 if=/dev/zero of=reproducer.img
+	/sbin/mkfs.ext4 -E root_owner=${UID}:${GROUPS[0]} -d reproducer reproducer.img
+	qemu-img convert -O qcow2 reproducer.img reproducer.qcow2
+	rm -f reproducer.img
+
+}
+
 init_syzrep() {
 	if [ ! -d "${root_dir}/linux/${KCONFIG_HASH}" ]; then
 		echo -n "copying linux_mainline..."

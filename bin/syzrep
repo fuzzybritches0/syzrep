@@ -246,6 +246,14 @@ init_image() {
 }
 
 init_syzrep() {
+	[ ! -f "${root_dir}/files/debos/image.qcow2" ] && init_image
+	pwd="${PWD}"
+	if [ ! -d "${root_dir}/linux/linux" ]; then
+		mkdir -p "${root_dir}/linux"
+		cd "${root_dir}/linux"
+		git clone https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+		cd "${pwd}"
+	fi
 	if [ ! -d "${root_dir}/linux/${KCONFIG_HASH}" ]; then
 		echo -n "copying linux_mainline..."
 		cp -LR "${root_dir}/linux/linux" "${root_dir}/linux/${KCONFIG_HASH}"
@@ -260,11 +268,13 @@ init_syzrep() {
 		help_syzrep "could not download .config!" 1
 		[ ! -f "linux/.config" ] && cp kconfig linux/.config
 	fi
-	if [ ! -f "reproducer.syz" ]; then
-		wget -O reproducer.syz \
+	[ ! -d "reproducer" ] && mkdir reproducer
+	if [ ! -f "reproducer/reproducer.syz" ]; then
+		wget -O reproducer/reproducer.syz \
 		"https://syzkaller.appspot.com/text?tag=ReproSyz&x=${REPRODUCER_HASH}" || \
 		help_syzrep "could not download syz reproducer!" 1
 	fi
+	[ ! -f "reproducer.qcow2" ] && init_reproducer
 }
 
 make_linux() {

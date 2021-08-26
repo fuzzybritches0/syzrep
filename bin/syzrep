@@ -140,11 +140,6 @@ run() {
 		  spec_store_bypass_disable=prctl nopcid ${2}"
 }
 
-upload() {
-	scp -P ${HOST_PORT_SSH} -i ${root_dir}/files/stretch.img.key ${root_dir}/files/syz-execprog \
-		${root_dir}/files/syz-executor reproducer.syz root@localhost:
-}
-
 end_qemu() {
 	pids="$(pidof qemu-system-x86_64)"
 	for pid in ${pids}; do

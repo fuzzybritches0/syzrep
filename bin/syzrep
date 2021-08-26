@@ -382,5 +382,22 @@ elif [ "${1}" == "raw" ]; then
 	rep_raw
 	clean_up
 	exit 0
+elif [ "${1}" == "deb" ]; then
+	init_syzrep
+	echo "please open another terminal and run 'syzrep gdb', then type c and hit enter to continue!"
+	echo "Ctrl+c ends the process! to repeat the process type: 'syzrep qem l' in a new terminal!"
+	run "-S -s -monitor telnet:127.0.0.1:55555,server,nowait" "panic=8600 syzrep_auto=1 syzrep_norvas=1" | \
+		debug
+	exit 0	
+elif [ "${1}" == "gdb" ]; then
+	cd linux
+	gdb --tui -ex "target remote tcp::1234" vmlinux
+	exit ${?}
+elif [ "${1}" == "qem" ]; then
+	[ "${2}" == "s" ] && echo "savevm 0" | nc -q 5 127.0.0.1 55555 > /dev/null && exit 0
+	[ "${2}" == "l" ] && echo "loadvm 0" | nc -q 5 127.0.0.1 55555 > /dev/null && exit 0
+	[ "${2}" == "q" ] && echo "quit" | nc -q 5 127.0.0.1 55555 > /dev/null && exit 0
+	nc 127.0.0.1 55555
+	exit ${?}
 fi
 help_syzrep

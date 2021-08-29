@@ -6,7 +6,7 @@ actions:
     components:
       - main
       #- non-free
-    mirror: http://192.168.10.1:3142/debian
+    mirror: http://deb.debian.org/debian
     variant: minbase
 
   - action: apt

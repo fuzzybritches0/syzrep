@@ -271,7 +271,7 @@ init_syzrep() {
 	fi
 	if [ ! -d "${root_dir}/linux/${KCONFIG_HASH}" ]; then
 		echo -n "copying linux_mainline..."
-		cp -LR "${root_dir}/linux/linux" "${root_dir}/linux/${KCONFIG_HASH}"
+		cp -PR "${root_dir}/linux/linux" "${root_dir}/linux/${KCONFIG_HASH}"
 		echo "done."
 	fi
 	[ ! -L "linux" ] && ln -s "${root_dir}/linux/${KCONFIG_HASH}" linux

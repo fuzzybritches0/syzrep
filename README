@@ -7,6 +7,10 @@ $ sudo apt install  build-essential git cscope libncurses-dev libssl-dev \
 	devscripts dwarves vim codespell gdb golang qemu-system-x86 \
 	colorized-logs qemu-utils debos
 
+We need to start at the root of our home directory:
+
+$ cd ~
+
 $ git clone https://github.com/fuzzybritches0/syzrep.git
 
 $ cd syzrep

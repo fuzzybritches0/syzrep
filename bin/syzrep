@@ -265,6 +265,8 @@ init_syzrep() {
 		mkdir -p "${root_dir}/linux"
 		cd "${root_dir}/linux"
 		git clone https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+		mv linux/.git/objects .
+		ln -s ../../objects linux/.git/objects
 		cd "${pwd}"
 	fi
 	if [ ! -d "${root_dir}/linux/${KCONFIG_HASH}" ]; then

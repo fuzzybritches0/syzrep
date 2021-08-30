@@ -207,7 +207,6 @@ init_reproducer() {
 		echo "#!/bin/bash" > reproducer/run.sh
 		echo "[ ! \"\$(cat /proc/cmdline | grep \"syzrep_auto=1\")\" ] && [ ! \"\${1}\" ] && exit 0" \
 			>> reproducer/run.sh
-		echo "[ \"\$(cat /proc/cmdline | grep \"syzrep_norvas=1\")\" ] && echo 0 > /proc/sys/kernel/randomize_va_space" >> reproducer/run.sh
 		echo "echo \"Wait 5s...\"" >> reproducer/run.sh
 		echo "sleep 5s" >> reproducer/run.sh
 		echo "cd /bin/linux_amd64" >> reproducer/run.sh
@@ -401,7 +400,7 @@ elif [ "${1}" == "deb" ]; then
 	init_syzrep
 	echo "please open another terminal and run 'syzrep gdb', then type c and hit enter to continue!"
 	echo "Ctrl+c ends the process! to repeat the process type: 'syzrep qem l' in a new terminal!"
-	run "-S -s -monitor telnet:127.0.0.1:55555,server,nowait" "panic=8600 syzrep_auto=1 syzrep_norvas=1" | \
+	run "-S -s -monitor telnet:127.0.0.1:55555,server,nowait" "panic=8600 syzrep_auto=1" | \
 		debug
 	exit 0	
 elif [ "${1}" == "gdb" ]; then

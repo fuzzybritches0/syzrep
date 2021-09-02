@@ -46,8 +46,7 @@ rc_file() {
 	echo 
 	echo "# FILTER SETTINGS"
 	echo "PATTERNS_START_REPORT=(\"BUG\" \"KASAN\" \"UBSAN\" \"WARNING\" \"cut here\")"
-	echo "PATTERNS_OMIT_LINE=(\"Creating new\" \"filter on device\" \"entered blocking state\" \\"
-	echo "	\"entered forwarding state\" \"link becomes ready\")"
+	echo "PATTERNS_OMIT_LINE=()"
 	echo "PATTERNS_OMIT_POST=(\"\${root_dir}/linux/\${KCONFIG_HASH}/\")"
 }
 

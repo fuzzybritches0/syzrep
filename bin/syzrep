@@ -190,7 +190,6 @@ discard() {
 
 rep() {
 	[ ! -f "linux/arch/x86_64/boot/bzImage" ] && help_syzrep "bzImage not found!" 1
-	count=0
 	reproduce &
 	run "" "panic=-1" | \
 		discard | cut_timestamps | ansi2txt > report_full1.txt
@@ -216,7 +215,6 @@ init_reproducer() {
 	/sbin/mkfs.ext4 -E root_owner=${UID}:${GROUPS[0]} -d reproducer reproducer.img
 	qemu-img convert -O qcow2 reproducer.img reproducer.qcow2
 	rm -f reproducer.img
-
 }
 
 init_image() {

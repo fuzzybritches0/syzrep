@@ -240,7 +240,7 @@ init_image() {
 		cd "${root_dir}/files/syzkaller"
 		git remote update
 		git pull
-		make
+		make all
 	fi
 	cd "${root_dir}/files/debos"
 	rm -f image.qcow2
